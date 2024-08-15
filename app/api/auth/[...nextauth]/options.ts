@@ -51,6 +51,8 @@ export const authOptions:NextAuthOptions = {
         if(user){
             token._id = user._id?.toString();
             token.username = user.username;
+            token.email = user.email;
+            token.cart = user.cart;
         }
         return token
       },
@@ -59,8 +61,9 @@ export const authOptions:NextAuthOptions = {
         if(token){
           session.user._id = token._id?.toString();
           session.user.username = token.username;
+          session.user.email = token.email;
+          session.user.cart = token.cart;
         }
-        console.log(session.user);
         return session
       },
     },

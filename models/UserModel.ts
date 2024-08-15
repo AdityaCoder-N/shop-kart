@@ -13,7 +13,25 @@ const UserSchema = new Schema({
     password:{
         type:String,
         required:true
-    }
+    },
+    cart: {
+        type: [
+          {
+            id: String,
+            title: String,
+            price: Number,
+            image: String,
+            description: String,
+            category: String,
+            rating: {
+              rate: Number,
+              count: Number,
+            },
+            quantity:Number
+          },
+        ],
+        default: [],
+    },
 });
 
 const UserModel = (mongoose.models.User) || mongoose.model("User",UserSchema);

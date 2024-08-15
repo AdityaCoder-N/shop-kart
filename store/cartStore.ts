@@ -3,63 +3,67 @@ import { ProductType } from "@/types";
 
 interface CartStore {
   cart: ProductType[];
-  loading: boolean;
-  error: string | null;
-  fetchCart: (userId: string) => Promise<void>;
-  addToCart: (product: ProductType, userId: string) => Promise<void>;
-  removeFromCart: (productId: string, userId: string) => Promise<void>;
+  setCart:(products:ProductType[])=>void;
+  addToCart:(product:ProductType)=>void;
+  removeFromCart:(productId:string)=>void;
+  updateQuantity:(productId:string,quantity:number)=>void;
+  calculateSubtotal:()=>number
 }
 
-export const useCartStore = create<CartStore>((set) => ({
+export const useCartStore = create<CartStore>((set,get) => ({
+  
   cart: [],
-  loading: false,
-  error: null,
 
-  // Fetch cart from the database
-  fetchCart: async (userId: string) => {
-    set({ loading: true, error: null });
-    try {
-      const response = await fetch(`/api/cart?userId=${userId}`);
-      const data = await response.json();
-      set({ cart: data.cart, loading: false });
-    } catch (error) {
-      set({ error: "Failed to fetch cart", loading: false });
-    }
+  setCart:(products:ProductType[])=>{
+    set((state)=>{
+      return {cart:products}
+    })
   },
-
-  // Add product to the cart and update the database
-  addToCart: async (product: ProductType, userId: string) => {
-    set({ loading: true, error: null });
-    try {
-      const response = await fetch(`/api/cart/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, product }),
-      });
-      const updatedCart = await response.json();
-      set({ cart: updatedCart, loading: false });
-    } catch (error) {
-      set({ error: "Failed to add to cart", loading: false });
-    }
+  addToCart: (product:ProductType)=>{
+    set((state)=>{
+      const itemExists = state.cart.some((item)=>String(item.id)===String(product.id));
+      if(itemExists){
+        return {cart:state.cart}
+      }
+      else{
+        const updatedCart = [...state.cart,product];
+        localStorage.setItem('cart',JSON.stringify(updatedCart));
+        return {cart:updatedCart}
+      }
+    })
   },
-
-  // Remove product from the cart and update the database
-  removeFromCart: async (productId: string, userId: string) => {
-    set({ loading: true, error: null });
-    try {
-      const response = await fetch(`/api/cart/remove`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId, productId }),
-      });
-      const updatedCart = await response.json();
-      set({ cart: updatedCart, loading: false });
-    } catch (error) {
-      set({ error: "Failed to remove from cart", loading: false });
-    }
+  removeFromCart:(productId:string)=>{
+    set((state)=>{
+      const itemExists = state.cart.some((item)=>String(item.id)===String(productId));
+      if(!itemExists){
+        return {cart:state.cart}
+      }
+      else{
+        const updatedCart = state.cart.filter((item)=>String(item.id)!==String(productId));
+        localStorage.setItem('cart',JSON.stringify(updatedCart));
+        return {cart:updatedCart}
+      }
+    })
   },
+  updateQuantity: (productId: string, quantity: number) => {
+    set((state) => {
+      const itemExists = state.cart.some((item)=>String(item.id)===String(productId));
+      if(!itemExists){
+        return {cart:state.cart}
+      }
+      const updatedCart = state.cart.map((item) =>
+        item.id === productId ? { ...item, quantity:Number(quantity) } : item
+      );
+      localStorage.setItem("cart", JSON.stringify(updatedCart));
+      return { cart: updatedCart };
+    });
+  },
+  calculateSubtotal: () => {
+    const cart = get().cart;
+    return cart.reduce(
+      (total, item) => total + Number(item.price) * Number(item.quantity || 1),
+      0
+    );
+  },
+  
 }));
